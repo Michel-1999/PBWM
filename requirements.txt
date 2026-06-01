@@ -1,0 +1,9 @@
+# The Bank — AI Prototype (Streamlit + Gemini)
+# Python 3.11+ recommended (built & tested on 3.12)
+
+streamlit>=1.43.0
+google-genai>=1.0.0
+pandas>=2.0.0
+# Pillow ships transitively with Streamlit and is used to render placeholder
+# assets; pinned explicitly so the avatar/logo fallbacks always work.
+Pillow>=10.0.0

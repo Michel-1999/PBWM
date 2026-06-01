@@ -1,0 +1,22 @@
+# Virtual environment
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Secrets (NEVER commit) + local demo state
+.streamlit/secrets.toml
+secrets.toml
+*.env
+.env
+*.key
+family_state.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

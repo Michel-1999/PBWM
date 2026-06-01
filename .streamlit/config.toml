@@ -1,0 +1,23 @@
+# The Bank — Streamlit theme.
+# Brand palette is sampled from the logo (deep forest/pine green #1F4F39).
+# NOTE: Streamlit's [theme] font cannot load Adobe Fonts ("Mendl Serif"); the
+# brand serif is injected via CSS in app/ui.py. These tokens are the safety net.
+
+[theme]
+base = "light"
+primaryColor = "#1F4F39"           # brand green — buttons, links, accents
+backgroundColor = "#FAFAF8"        # near-white page background
+secondaryBackgroundColor = "#E7EEEA"  # light green tint — sidebar, cards, widgets
+textColor = "#1A1A1A"              # charcoal body text
+font = "sans serif"                # legible base for dense data; CSS sets serif headings
+
+[browser]
+gatherUsageStats = false
+
+[server]
+headless = true
+runOnSave = false
+
+[client]
+showErrorDetails = true
+toolbarMode = "minimal"
