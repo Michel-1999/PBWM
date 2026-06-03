@@ -35,7 +35,7 @@ score0 = fam0["current_score"]["score"]
 assert "nba-heir-savings" in [n["id"] for n in fam0["nbas"]], "savings NBA missing"
 
 for b in rm.button:
-    if b.key == "nba_nba-heir-savings":
+    if b.key == "recmtg_nba-heir-savings":
         b.click(); break
 rm.run()
 fam1 = rm.session_state["family"]

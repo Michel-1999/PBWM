@@ -28,7 +28,7 @@ BENCHMARK_HEIR = "80/20 reference (MSCI World / CHF cash)"
 FAMILY_STRATEGY = {
     "summary": "Preserve and grow the family's wealth across generations with a balanced, "
                "open-architecture approach, while preparing an orderly transfer to the next "
-               "generation (Lukas and, in time, Sophie).",
+               "generation (Lukas).",
     "investment_approach": "Core balanced portfolios (equities + bonds) complemented by selective "
                            "alternatives and a small digital-asset sleeve as The Bank's "
                            "differentiator. Conservative tilt for Margrit, balanced for Hans, "
@@ -186,6 +186,24 @@ def _build_principal() -> dict:
         "holdings": holdings,
         "asset_allocation": _allocation_from_holdings(holdings, total),
         "digital_asset_sleeve": _digital_sleeve(holdings, total),
+        # Suitability policy block — used by the Client Strategy Monitor (§4.3). The
+        # target_allocation keys mirror the asset_class labels above and sum to
+        # 100; at seed the holdings sit on target, so the principal is IN policy.
+        # limits override sentinel.THRESHOLDS defaults where the member differs;
+        # da_vol_budget_pct is genuinely per-portfolio (risk budget for crypto).
+        "policy": {
+            "risk_profile": "Balanced (moderate)",
+            "target_allocation": {
+                "Equities (direct)": 28, "Equity funds": 18, "Bonds": 25,
+                "Alternatives": 12, "Real estate": 7, "Digital Assets": 4, "Cash": 6,
+            },
+            "limits": {"concentration_limit_pct": 15, "cash_floor_pct": 2,
+                       "cash_ceiling_pct": 8, "da_vol_budget_pct": 8},
+            "goals": [
+                {"name": "Legacy fund for grandchildren", "target_chf": 500_000, "saved_chf": 380_000},
+                {"name": "Ticino property upkeep reserve", "target_chf": 200_000, "saved_chf": 165_000},
+            ],
+        },
         "performance_annual": [
             {"year": "2019", "portfolio_pct": 16.8, "benchmark_pct": 18.2},
             {"year": "2020", "portfolio_pct": 6.2, "benchmark_pct": 6.5},
@@ -238,7 +256,7 @@ def _build_principal() -> dict:
                            "and being addressed formally.",
             "household": {
                 "spouse": "Margrit Mueller (62)",
-                "children": ["Lukas Mueller (32) - client", "Sophie Mueller (29) - not yet a client"],
+                "children": ["Lukas Mueller (32) - client"],
             },
             "life_events": [
                 {"date": "2021-09", "event": "Sold a minority stake in the family manufacturing business; CHF 6.0m proceeds invested with The Bank."},
@@ -257,7 +275,7 @@ def _build_principal() -> dict:
 def _build_heir() -> dict:
     holdings = [
         {"name": "iShares Core MSCI World ETF", "ticker": "IWDA", "asset_class": "Equity ETFs",
-         "value_chf": 154_000, "cost_basis_chf": 130_000},
+         "value_chf": 173_600, "cost_basis_chf": 130_000},
         {"name": "iShares Automation & Robotics ETF", "ticker": "RBOT", "asset_class": "Equity ETFs",
          "value_chf": 42_000, "cost_basis_chf": 36_000},
         {"name": "Bitcoin (BTC)", "ticker": "BTC", "asset_class": "Digital Assets",
@@ -265,7 +283,7 @@ def _build_heir() -> dict:
         {"name": "Ethereum (ETH)", "ticker": "ETH", "asset_class": "Digital Assets",
          "value_chf": 11_600, "cost_basis_chf": 12_000},
         {"name": "CHF cash (incl. accrued dividends)", "ticker": "CASH-CHF", "asset_class": "Cash",
-         "value_chf": 50_400, "cost_basis_chf": 48_000},
+         "value_chf": 30_800, "cost_basis_chf": 30_000},
     ]
     holdings, total = _finalize_holdings(holdings)  # total == 280,000
 
@@ -290,6 +308,21 @@ def _build_heir() -> dict:
         "holdings": holdings,
         "asset_allocation": _allocation_from_holdings(holdings, total),
         "digital_asset_sleeve": _digital_sleeve(holdings, total),
+        # Suitability policy block (paper §4.3). The heir is deliberately a little
+        # OFF target at seed (cash has drifted up ~2pp), so one gentle client-side
+        # plan-check alert exists from the start without any market shock.
+        "policy": {
+            "risk_profile": "Growth (high risk capacity, long horizon)",
+            # Growth mandate: high equity, a small digital-asset sleeve, and only a
+            # modest cash buffer for his near-term apartment goal. He has drifted a
+            # touch above the tight cash ceiling, so the monitor shows one gentle cash
+            # flag plus a small allocation-drift flag.
+            "target_allocation": {"Equity ETFs": 79, "Digital Assets": 12, "Cash": 9},
+            "limits": {"concentration_limit_pct": 15, "cash_floor_pct": 2,
+                       "cash_ceiling_pct": 10, "da_vol_budget_pct": 15},
+            # The heir's funding goals are LIVE (engagement.heir_goals) — set in the
+            # life-goal tracker — so none are hard-coded here.
+        },
         "performance_annual": [
             {"year": "2022", "portfolio_pct": -14.2, "benchmark_pct": -12.4},
             {"year": "2023", "portfolio_pct": 22.5, "benchmark_pct": 18.6},
@@ -334,7 +367,7 @@ def _build_heir() -> dict:
             "favourite_drink": "Craft beer; an oat-milk flat white",
             "personality": "Curious, time-poor and digital-first; learns by doing and prefers short, "
                            "plain-language explanations.",
-            "household": {"parents": ["Hans Mueller (65)", "Margrit Mueller (62)"], "sibling": "Sophie Mueller (29)"},
+            "household": {"parents": ["Hans Mueller (65)", "Margrit Mueller (62)"]},
             "life_events": [
                 {"date": "2021-11", "event": "Received CHF 200k family gift; opened a sub-account with The Bank."},
                 {"date": "2025-09", "event": "Mentioned (via father) an interest in saving for a first apartment."},
@@ -376,6 +409,21 @@ def _build_spouse() -> dict:
         "holdings": holdings,
         "asset_allocation": _allocation_from_holdings(holdings, total),
         "digital_asset_sleeve": _digital_sleeve(holdings, total),
+        # Suitability policy block (paper §4.3). Conservative profile keeps a
+        # larger liquidity buffer, so her cash ceiling is wider; at seed the
+        # holdings sit on target, so the spouse is IN policy.
+        "policy": {
+            "risk_profile": "Conservative",
+            # Slightly off target at seed: she holds 18% cash vs a 16% target/ceiling,
+            # which produces one light drift flag and one light cash flag for the advisor.
+            "target_allocation": {"Bonds": 41, "Equity funds": 31, "Real estate": 12, "Cash": 16},
+            "limits": {"concentration_limit_pct": 15, "cash_floor_pct": 5,
+                       "cash_ceiling_pct": 16, "da_vol_budget_pct": 0},
+            "goals": [
+                {"name": "Family foundation endowment", "target_chf": 400_000, "saved_chf": 300_000},
+                {"name": "Travel & arts fund", "target_chf": 120_000, "saved_chf": 96_000},
+            ],
+        },
         "performance_annual": [
             {"year": "2019", "portfolio_pct": 8.2, "benchmark_pct": 9.0},
             {"year": "2020", "portfolio_pct": 4.1, "benchmark_pct": 4.5},
@@ -418,7 +466,7 @@ def _build_spouse() -> dict:
             "hobbies": ["Collecting modern art", "Opera & classical concerts", "Charity galas"],
             "favourite_drink": "Champagne on occasion; chamomile tea",
             "personality": "Warm, culturally engaged and philanthropic; cares about family legacy.",
-            "household": {"spouse": "Hans Mueller (65)", "children": ["Lukas (32)", "Sophie (29)"]},
+            "household": {"spouse": "Hans Mueller (65)", "children": ["Lukas (32)"]},
             "life_events": [
                 {"date": "2024-11", "event": "Co-leads early estate-planning discussions with Hans."},
             ],
@@ -431,6 +479,21 @@ def _build_spouse() -> dict:
 # ---------------------------------------------------------------------------
 # Full family seed.
 # ---------------------------------------------------------------------------
+def _seed_score_history() -> list:
+    """A rising monthly priority-score history (the risk has grown as Hans nears
+    retirement while Lukas stayed disengaged). The live demo then bends it down."""
+    months = [(2025, 6), (2025, 7), (2025, 8), (2025, 9), (2025, 10), (2025, 11),
+              (2025, 12), (2026, 1), (2026, 2), (2026, 3), (2026, 4), (2026, 5)]
+    scores = [62, 63, 65, 66, 68, 69, 70, 72, 73, 74, 75, 75]
+    out, prev = [], None
+    for (y, mo), s in zip(months, scores):
+        band = "high" if s >= 67 else ("medium" if s >= 40 else "low")
+        out.append({"ts": f"{y}-{mo:02d}-28", "score": s, "band": band,
+                    "reason": "Monthly assessment", "delta": (s - prev) if prev is not None else 0})
+        prev = s
+    return out
+
+
 def seed_family() -> dict:
     """Return a fresh, deep-copied seed of the whole shared family state."""
     family = {
@@ -440,17 +503,17 @@ def seed_family() -> dict:
             "principal": {
                 "name": "Hans Mueller", "role": "principal", "age": 65,
                 "domicile": "DE", "cross_border": True, "kyc_status": "ok",
-                "avatar": "vater.png", "title": "Principal (Vater)",
+                "avatar": "vater.png", "title": "Principal",
             },
             "spouse": {
                 "name": "Margrit Mueller", "role": "spouse", "age": 62,
                 "domicile": "DE", "cross_border": True, "kyc_status": "ok",
-                "avatar": "Spouse.png", "title": "Spouse (Mutter)",
+                "avatar": "Spouse.png", "title": "Spouse",
             },
             "heir": {
                 "name": "Lukas Mueller", "role": "heir", "age": 32,
                 "domicile": "DE", "cross_border": True, "kyc_status": "review",
-                "avatar": "sohn.png", "title": "Heir (Sohn)",
+                "avatar": "sohn.png", "title": "Heir",
             },
         },
         "rm": {"name": "Reto Wyss", "role": "Relationship Manager", "desk": "Cross-border DE / HNWI"},
@@ -469,6 +532,12 @@ def seed_family() -> dict:
             "principal_governance_intro_done": False,
             "last_rm_contact_days": 24,
             "principal_last_review_days": 115,
+            # Per-member behaviour for the Engagement Score (the heir's is derived
+            # live from the fields above). Hans is active, Margrit moderate.
+            "members": {
+                "principal": {"logins_30d": 7, "deposits_12m": 2, "goals": 2, "meetings_12m": 3, "depth": 0.8},
+                "spouse": {"logins_30d": 4, "deposits_12m": 1, "goals": 2, "meetings_12m": 2, "depth": 0.6},
+            },
         },
         "messages": [
             {
@@ -505,7 +574,7 @@ def seed_family() -> dict:
                         "Meridian app and first ETF & crypto positions."},
         ],
         "nbas": [],            # generated by score.py
-        "score_history": [],   # appended on every recompute
+        "score_history": _seed_score_history(),  # seeded trend + appended on every recompute
         "activity_log": [],    # human-readable trail for the demo
     }
     return copy.deepcopy(family)

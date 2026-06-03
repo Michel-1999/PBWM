@@ -16,6 +16,12 @@ fam = state.get_family()
 portfolio = fam["portfolios"]["principal"]
 member = fam["members"]["principal"]
 
+_tl, _tm, _tr = st.columns([0.3, 0.4, 0.3])
+with _tl:
+    ui.back_to_overview()
+with _tr:
+    dashboard.config_popover("principal")
+
 portrait = (
     ui.avatar_html("vater.png", "HM", 112, ring="#fff")
     + '<div style="text-align:right"><div style="color:#fff;font-weight:400;font-size:1.05rem">Hans Müller</div>'
@@ -23,15 +29,17 @@ portrait = (
 )
 ui.header_bar("My Wealth Intelligence", "powered by Meridian", right_html=portrait)
 
-# --- Identical KPI boxes ---------------------------------------------------
+# --- 1) Identical KPI boxes ------------------------------------------------
 dashboard.kpi_row(portfolio)
 
-# --- Clio — your personal AI-Assistant (collapsible) -----------------------
+# --- 2) My strategy (agreed with the advisor) ------------------------------
+dashboard.strategy_summary_card("principal", portfolio, member)
+
+# --- 3) Chat with Meridian AI --------------------------------------------
 st.markdown(" ")
-with st.expander("Clio, your personal AI-Assistant", expanded=True):
+with st.expander("Chat with Meridian AI", expanded=True):
     ui.ai_chat_panel(
         "principal", portfolio, member, state_key="principal_chat",
-        title="Clio", scope="Your personal AI-Assistant",
         suggestions=[
             ("My net return", "What has been my net return, including all trades, since I started investing?"),
             ("My fees", "What fees am I paying?"),
@@ -40,7 +48,7 @@ with st.expander("Clio, your personal AI-Assistant", expanded=True):
         placeholder="e.g. What is my net return, including all trades, since I started?",
     )
 
-# --- Personalised nudges (discreet) ----------------------------------------
+# --- 4) Personalised offers (discreet) -------------------------------------
 ui.pediment("For you")
 o1, o2 = st.columns(2, gap="large")
 with o1:
@@ -49,13 +57,12 @@ with o1:
             "principal_gov", tag="A discreet recommendation",
             title="Family governance & succession",
             body="As retirement approaches, many families value a calm, confidential conversation "
-                 "about succession and involving the next generation — entirely at your pace.",
+                 "about succession and involving the next generation, entirely at your pace.",
             cta_label="Let Mr. Reto Wyss know I'm interested"):
             state.add_message("principal", "rm",
                               "Ich würde gerne unverbindlich über Familien-Governance und "
                               "Nachfolgeplanung sprechen.")
-            st.success("Thank you — Mr. Reto Wyss will be in touch.")
-            st.rerun()
+            st.toast("Thank you. Reto Wyss will be in touch.", icon="✅")
     else:
         ui.offer_card("principal_planning", tag="Planning ahead", title="Annual wealth review",
                       body="Your next portfolio review is a good moment to revisit goals, risk and "
@@ -69,19 +76,17 @@ with o2:
         state.add_message("principal", "rm",
                           "Können wir bei Gelegenheit über die Nachfolgeplanung für unsere "
                           "Immobilien (u.a. Tessin) sprechen?")
-        st.success("Sent to Mr. Reto Wyss.")
-        st.rerun()
+        st.toast("Sent to Reto Wyss.", icon="✅")
 
 if st.button("📚  Open the Finance Learning hub", key="finlearn_principal"):
     st.toast("Finance Learning is coming soon.")
-st.caption("A financial-education hub for clients (demo placeholder).")
 
-# --- Configurable dashboard + advisor touchpoints --------------------------
+# --- 5) Configurable dashboard + 6) advisor touchpoints --------------------
 dashboard.render("principal", portfolio, member)
 dashboard.advisor_touchpoints("principal")
 st.checkbox("Also receive paper statements by post (2-year digital-transition option)",
             value=True, key="principal_paper",
-            help="Reflects the paper's transition period for the boomer cohort — digital adoption "
+            help="Reflects the paper's transition period for the boomer cohort, with digital adoption "
                  "at the client's own pace.")
 
 ui.disclaimer_note()

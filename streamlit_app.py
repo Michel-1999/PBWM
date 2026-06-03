@@ -4,10 +4,14 @@ Run locally:  streamlit run streamlit_app.py
 On Streamlit Community Cloud, set the main file path to: streamlit_app.py
 
 Brands:
-  * Clio     — the AI assistant behind everything (chat + recommendations)
-  * Meridian — the platform by The Bank
+  * Meridian — the platform by The Bank; its built-in AI is surfaced as
+    "Meridian AI" (chat + recommendations).
   * Dashboards: clients see "My Wealth Intelligence", the RM the
-    "Wealth Intelligence Advisor", both powered by Meridian.
+    "Advisor Wealth Intelligence", both powered by Meridian.
+
+Navigation: the sidebar page menu is hidden. The app opens on the Prototype
+Instructions hub; from there the user enters a workspace, and each workspace has
+a top-left "Overview" link back to the hub.
 
 Access control: if APP_PASSWORD is set in secrets (e.g. on Streamlit Cloud), the
 app shows a password screen first. With no APP_PASSWORD configured it is open.
@@ -36,6 +40,8 @@ pages = [
     st.Page("views/spouse.py", title="Margrit Müller (Spouse)"),
     st.Page("views/heir.py", title="Lukas Müller (Son)"),
 ]
-nav = st.navigation(pages, position="sidebar")
+# The sidebar page menu is hidden: the Instructions hub is the entry point and
+# routes to the workspaces (each has a top-left "Overview" link back).
+nav = st.navigation(pages, position="hidden")
 ui.sidebar_controls()
 nav.run()

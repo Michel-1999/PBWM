@@ -20,6 +20,12 @@ fam = state.get_family()
 portfolio = fam["portfolios"]["spouse"]
 member = fam["members"]["spouse"]
 
+_tl, _tm, _tr = st.columns([0.3, 0.4, 0.3])
+with _tl:
+    ui.back_to_overview()
+with _tr:
+    dashboard.config_popover("spouse")
+
 portrait = (
     ui.avatar_html("Spouse.png", "MM", 112, ring="#fff")
     + '<div style="text-align:right"><div style="color:#fff;font-weight:400;font-size:1.05rem">Margrit Müller</div>'
@@ -27,15 +33,17 @@ portrait = (
 )
 ui.header_bar("My Wealth Intelligence", "powered by Meridian", right_html=portrait)
 
-# --- Identical KPI boxes ---------------------------------------------------
+# --- 1) Identical KPI boxes ------------------------------------------------
 dashboard.kpi_row(portfolio)
 
-# --- Clio — your personal AI-Assistant (collapsible) -----------------------
+# --- 2) My strategy (agreed with the advisor) ------------------------------
+dashboard.strategy_summary_card("spouse", portfolio, member)
+
+# --- 3) Chat with Meridian AI --------------------------------------------
 st.markdown(" ")
-with st.expander("Clio, your personal AI-Assistant", expanded=True):
+with st.expander("Chat with Meridian AI", expanded=True):
     ui.ai_chat_panel(
         "spouse", portfolio, member, state_key="spouse_chat",
-        title="Clio", scope="Your personal AI-Assistant",
         suggestions=[
             ("My net return", "What has been my net return, including all trades, since I started investing?"),
             ("My allocation", "Summarise my asset allocation and risk profile."),
@@ -44,7 +52,7 @@ with st.expander("Clio, your personal AI-Assistant", expanded=True):
         placeholder="e.g. What is my portfolio worth and how is it allocated?",
     )
 
-# --- Personalised offers ----------------------------------------------------
+# --- 4) Personalised offers ------------------------------------------------
 ui.pediment("For you")
 o1, o2 = st.columns(2, gap="large")
 with o1:
@@ -56,8 +64,7 @@ with o1:
         state.add_message("spouse", "rm",
                           "Ich würde gerne über die Strukturierung unserer Stiftung und "
                           "philanthropische Themen sprechen.")
-        st.success("Sent to Mr. Reto Wyss.")
-        st.rerun()
+        st.toast("Sent to Reto Wyss.", icon="✅")
 with o2:
     ui.offer_card(
         "spouse_art", tag="Planning ahead", title="Estate & art succession",
@@ -66,9 +73,8 @@ with o2:
 
 if st.button("📚  Open the Finance Learning hub", key="finlearn_spouse"):
     st.toast("Finance Learning is coming soon.")
-st.caption("A financial-education hub for clients (demo placeholder).")
 
-# --- Configurable dashboard + advisor touchpoints --------------------------
+# --- 5) Configurable dashboard + 6) advisor touchpoints --------------------
 dashboard.render("spouse", portfolio, member)
 dashboard.advisor_touchpoints("spouse")
 

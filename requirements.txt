@@ -1,4 +1,4 @@
-# The Bank — AI Prototype (Streamlit + Gemini)
+# The Bank - AI Prototype (Streamlit + Gemini)
 # Python 3.11+ recommended (built & tested on 3.12)
 
 streamlit>=1.43.0

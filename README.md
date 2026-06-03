@@ -1,15 +1,15 @@
 # The Bank — Meridian AI Prototype
 
 An interactive **appendix artefact** for a University of St.Gallen examination paper
-(course 8,182 *Private Banking and Wealth Management*). It makes two AI use cases
+(course 8,182 *Private Banking and Wealth Management*). It makes three AI use cases
 tangible for a fictional family-owned Swiss private bank, **"The Bank"**.
 
-Three product brands run through the prototype:
+The branding runs through the prototype as follows:
 
-- **Clio** — the AI assistant working behind everything (chat + recommendations).
 - **Meridian** — the platform by The Bank (clients and the relationship manager).
+  Its built-in AI assistant is surfaced as **Meridian (AI)** (chat + recommendations).
 - **Dashboards** — clients use **My Wealth Intelligence**, the relationship
-  manager uses the **Wealth Intelligence Advisor**, both *powered by Meridian*.
+  manager uses the **Advisor Wealth Intelligence**, both *powered by Meridian*.
 
 > Prototype only · synthetic data · illustrative AI output · **not investment advice**.
 
@@ -28,12 +28,10 @@ streamlit run streamlit_app.py
 
 Open **http://localhost:8501**. If 8501 is busy: `streamlit run streamlit_app.py --server.port 8502`.
 
-**It runs with zero setup.** Without a Gemini key, Clio answers in a clearly
-labelled **offline mock mode**. Add a free key for live answers in either way:
-
-1. paste it into `.streamlit/secrets.toml` as `GEMINI_API_KEY`, **or**
-2. paste it at runtime in the sidebar under **"Use your own Gemini key"** (kept
-   only in the browser session — nothing is written to the repo).
+**It runs with zero setup.** Without a Gemini key, Meridian's AI answers in a
+clearly labelled **offline mock mode**. For live answers, paste a free key into
+`.streamlit/secrets.toml` as `GEMINI_API_KEY` (locally) or into the app's
+**Settings → Secrets** (on Streamlit Community Cloud).
 
 Get a free key (no credit card) at <https://aistudio.google.com> → *Get API key*.
 
@@ -44,8 +42,8 @@ Get a free key (no credit card) at <https://aistudio.google.com> → *Get API ke
 - **No secrets are committed.** `.streamlit/secrets.toml`, `*.env`, `*.key` and
   `family_state.json` are in `.gitignore`. Only `secrets.toml.example` (a
   placeholder) is tracked. **Never commit your real `secrets.toml`.**
-- **The app works for everyone** who clones it: it starts in mock mode, and any
-  visitor can enable live Clio with their own free key via the sidebar.
+- **The app works for everyone** who clones it: it starts in mock mode, and live
+  Meridian (AI) is enabled when a `GEMINI_API_KEY` is configured in secrets.
 - **Adobe Fonts** ("Mendl Serif") loads via an Adobe *web project* kit id, which
   is **public by design** (it appears in the page source of any site using it),
   so it is fine to keep in the code. If the kit is unavailable, the UI falls back
@@ -79,14 +77,14 @@ live state (`st.session_state`), wired with `st.navigation`:
 
 | Workspace | Use case | Role |
 |---|---|---|
-| **Reto Wyss (Advisor)** | 4.1 Advisor Co-Pilot | Wealth Intelligence Advisor: family briefing, score, next-best-actions, calendar |
-| **Hans Müller (Principal)** | 4.2 Personal Wealth OS | My Wealth Intelligence dashboard + Clio |
+| **Reto Wyss (Advisor)** | 4.1 Advisor Co-Pilot | Advisor Wealth Intelligence: family briefing, score, next-best-actions, calendar |
+| **Hans Müller (Principal)** | 4.2 Personal Wealth OS | My Wealth Intelligence dashboard + Meridian (AI) |
 | **Margrit Müller (Spouse)** | 4.2 Personal Wealth OS | Same platform, her own design + offers |
-| **Lukas Müller (Son)** | 4.2 Personal Wealth OS | Next-gen: goals, deposits, Clio |
+| **Lukas Müller (Son)** | 4.2 Personal Wealth OS | Next-gen: goals, deposits, Meridian (AI) |
 
 **The hero flow (runs live):** the Son sets a goal / deposits → the rule-based
-**Inheritance Engagement Score** recomputes (at-risk AUM falls) → the Advisor
-sees the new score + a Clio **next-best-action** → sends a meeting request → the
+heir's **Engagement Score** rises and the family **Inheritance Score** falls (at-risk AUM falls) → the Advisor
+sees the new score + an AI **next-best-action** → sends a meeting request → the
 Son confirms → the score and every dashboard update together.
 
 ---
@@ -98,7 +96,7 @@ the-bank-prototype/
 ├── streamlit_app.py                  # entry / router (st.navigation, theme, shared state)
 ├── views/                  # one script per workspace
 │   ├── instructions.py     # Prototype Instructions (landing)
-│   ├── rm.py               # Wealth Intelligence Advisor (Reto Wyss) — 4.1
+│   ├── rm.py               # Advisor Wealth Intelligence (Reto Wyss) — 4.1
 │   ├── principal.py        # My Wealth Intelligence — Hans (4.2)
 │   ├── spouse.py           # My Wealth Intelligence — Margrit (4.2)
 │   └── heir.py             # My Wealth Intelligence — Lukas (4.2)
@@ -106,8 +104,9 @@ the-bank-prototype/
 │   ├── bank_profile.py     # fixed facts about The Bank
 │   ├── fixtures.py         # Müller family data (reconciles by construction) + strategy + meeting history
 │   ├── state.py            # shared state + mutator helpers
-│   ├── score.py            # rule-based Inheritance Engagement Score + NBAs
-│   ├── gemini.py           # grounded, guardrailed Clio layer (+ mock mode)
+│   ├── score.py            # rule-based Engagement Scores + Inheritance Score + NBAs (§4.1/4.2)
+│   ├── strategy.py         # rule-based Client Strategy Monitor + flags (§4.3)
+│   ├── gemini.py           # grounded, guardrailed Meridian AI layer (+ mock mode)
 │   ├── dashboard.py        # shared configurable client dashboard
 │   └── ui.py               # brand theme (CSS) + reusable components
 ├── .streamlit/             # config.toml (theme) + secrets.toml.example
@@ -126,7 +125,8 @@ Family total: Hans CHF 22.4m + Margrit CHF 3.4m + Lukas CHF 0.28m = **CHF 26.08m
 ```powershell
 .venv\Scripts\python.exe tools\_verify.py         # pages render + hero flow
 .venv\Scripts\python.exe tools\_check_family.py   # totals + scenario math
-.venv\Scripts\python.exe tools\_check_advisor.py  # Clio context + guardrail (needs a key for live)
+.venv\Scripts\python.exe tools\_check_advisor.py  # Meridian AI context + guardrail (needs a key for live)
+.venv\Scripts\python.exe tools\_check_strategy.py # Client Strategy Monitor: detection, stress test, rebalance, reset
 ```
 
 ---
@@ -135,10 +135,11 @@ Family total: Hans CHF 22.4m + Margrit CHF 3.4m + Lukas CHF 0.28m = **CHF 26.08m
 
 | Prototype feature | Paper | Concept |
 |---|---|---|
-| Wealth Intelligence Advisor (Clio) | §4.1 | RM efficiency; "high tech and high touch" |
+| Advisor Wealth Intelligence (Meridian AI) | §4.1 | RM efficiency; "high tech and high touch" |
 | My Wealth Intelligence (Meridian) | §4.2 | One configurable platform, two+ generations |
-| Inheritance Engagement Score + drivers | §4 | Generational wealth transfer; AUM retention |
-| Next-best-actions by Clio | §4 | Proactive, data-driven advisory |
+| Client Strategy Monitor + market simulator | §4.3 | Continuous strategy-adherence monitoring; rule engine detects, Meridian AI explains |
+| Engagement Scores + Inheritance Score + drivers | §4 | Generational wealth transfer; AUM retention |
+| Next-best-actions by Meridian (AI) | §4 | Proactive, data-driven advisory |
 | Engagement engine (goals/deposits move the score) | §1, §7 | Engaging heirs 10–15 years early |
 | Discreet, personalised offers/nudges | §7 | "Discreet, highly personalised, not intrusive" |
 | Confined portfolio chat ("net return incl. all trades") | §5a | Transparency under open architecture |
@@ -153,6 +154,6 @@ Family total: Hans CHF 22.4m + Margrit CHF 3.4m + Lukas CHF 0.28m = **CHF 26.08m
 ## Academic integrity & disclaimers
 Prototype for an academic appendix, not a product. All persons and figures are
 **fictional and synthetic**. AI output is illustrative and **not investment, tax
-or legal advice**. The engagement score is a transparent rule engine, not the
+or legal advice**. The engagement and inheritance scores are a transparent rule engine, not the
 LLM. In production the AI would run on the Swiss-hosted **Unique** platform; here
 it is simulated with Google Gemini, with AI use declared as required.

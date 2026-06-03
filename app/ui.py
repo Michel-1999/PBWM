@@ -1,7 +1,8 @@
 """Brand theme + reusable UI components (paper §8).
 
 Platform brand: **Meridian** (the client & RM platform), by **The Bank**.
-AI assistant brand: **Clio** (chat + recommendations).
+The AI assistant is part of Meridian (chat + recommendations); it is surfaced as
+"Meridian AI".
 
 Typography is the Adobe Fonts serif **mendl-serif-dusk** (kit fgs4ozu):
   600 → main wordmark · 300 → secondary logo · 400 → headings · 200 → body text.
@@ -214,12 +215,12 @@ def inject_brand() -> None:
         html, body, [class*="css"], .stMarkdown, p, li, label, span, div, input, textarea, select,
         button, [data-testid="stWidgetLabel"] {{ font-family:var(--tb-serif); color:var(--tb-ink); }}
 
-        /* 200 → body text */
-        body, p, li, .stMarkdown, .stCaption, [data-testid="stCaptionContainer"],
-        .tb-chat-text, .tb-metric-sub, .tb-offer .b {{ font-weight:200; }}
-        /* captions readable dark green, never light grey */
+        /* body text */
+        body, p, li, .stMarkdown,
+        .tb-chat-text, .tb-metric-sub, .tb-offer .b {{ font-weight:300; }}
+        /* captions: dark + a touch heavier so they read clearly on white */
         .stCaption, [data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p,
-        [data-testid="stCaptionContainer"] span {{ color:var(--tb-muted) !important; }}
+        [data-testid="stCaptionContainer"] span {{ color:#313D37 !important; font-weight:400 !important; }}
 
         /* 400 → headings & figures */
         h1, h2, h3, h4, .brand-serif,
@@ -274,7 +275,7 @@ def inject_brand() -> None:
         .tb-offer .h {{ color:var(--tb-green); font-size:1.06rem; margin-bottom:4px; }}
         .tb-offer .b {{ font-size:.9rem; color:var(--tb-ink); line-height:1.45; }}
 
-        /* AI (Clio) panel header */
+        /* AI panel header */
         .tb-ai-head {{ display:flex; align-items:center; gap:10px; margin:-4px -4px 8px -4px;
           padding:10px 14px; background:var(--tb-green); color:#fff; border-radius:7px; }}
         .tb-ai-head .t {{ font-size:1.05rem; color:#fff !important; }}
@@ -314,6 +315,29 @@ def inject_brand() -> None:
         .stButton > button[kind="primary"], .stFormSubmitButton > button[kind="primary"] {{
           background:var(--tb-green) !important; color:#fff !important; border-color:var(--tb-green) !important; }}
         .stButton > button[kind="primary"] *, .stFormSubmitButton > button[kind="primary"] * {{ color:#fff !important; }}
+        /* Hover: lift + shadow so buttons clearly read as clickable */
+        button[data-testid^="stBaseButton"], .stButton > button, .stFormSubmitButton > button {{
+          transition:transform .12s ease, box-shadow .12s ease; cursor:pointer; }}
+        button[data-testid^="stBaseButton"]:hover, .stButton > button:hover, .stFormSubmitButton > button:hover {{
+          transform:translateY(-1px); box-shadow:0 3px 10px rgba(22,58,42,.20); }}
+        /* Overview back button — bold & prominent */
+        .st-key-back_overview button {{ font-weight:700 !important; letter-spacing:1px;
+          border:1.5px solid var(--tb-green) !important; color:var(--tb-green) !important; }}
+        .st-key-back_overview button:hover {{ background:var(--tb-tint) !important; }}
+        /* Expander titles — bold & readable (the body font is very light) */
+        [data-testid="stExpander"] summary {{ font-weight:700 !important; }}
+        [data-testid="stExpander"] summary p {{ font-weight:700 !important; font-size:1rem;
+          color:var(--tb-green) !important; }}
+        [data-testid="stExpander"] summary svg {{ fill:var(--tb-green) !important; }}
+        /* The two engine expanders wear their source colour as a chip-style header */
+        .st-key-exp_engagement [data-testid="stExpander"] summary {{ background:#34577C !important; border-radius:7px; }}
+        .st-key-exp_strategy [data-testid="stExpander"] summary {{ background:#176B63 !important; border-radius:7px; }}
+        .st-key-exp_engagement [data-testid="stExpander"] summary *,
+        .st-key-exp_strategy [data-testid="stExpander"] summary * {{ color:#fff !important; fill:#fff !important; }}
+        /* Multiselect (filter) pills: brand green with white text so they read clearly */
+        [data-baseweb="tag"] {{ background:var(--tb-green) !important; }}
+        [data-baseweb="tag"] span, [data-baseweb="tag"] div {{ color:#fff !important; }}
+        [data-baseweb="tag"] svg {{ fill:#fff !important; }}
 
         /* Sidebar */
         [data-testid="stSidebar"] {{ background:#fff; border-right:1px solid var(--tb-hairline); }}
@@ -372,27 +396,33 @@ def password_gate() -> bool:
         return True
     if st.session_state.get("auth_ok"):
         return True
-    mid = st.columns([1, 1.2, 1])[1]
+    mid = st.columns([1, 1.3, 1])[1]
     with mid:
-        st.markdown(f'<div style="text-align:center;margin-top:7vh">{bank_logo(h=70)}</div>',
+        st.markdown('<div style="height:7vh"></div>', unsafe_allow_html=True)
+        # Branded login panel — green background so the white Meridian logo shows.
+        st.markdown(
+            f'<div style="background:var(--tb-green);border-radius:14px;padding:30px 26px 24px;'
+            f'text-align:center;border-bottom:5px solid var(--tb-gold);'
+            f'box-shadow:0 8px 24px rgba(22,58,42,.25)">{meridian_logo(h=30)}'
+            f'<div style="color:#fff;font-weight:300;letter-spacing:1.5px;margin-top:14px;'
+            f'font-size:.8rem;text-transform:uppercase">Prototype access</div>'
+            f'<div style="color:#EAF2EC;font-size:.78rem;margin-top:4px">by The Bank · Zurich</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown('<p style="text-align:center;color:#3C5A4B;margin-top:16px;font-size:.9rem">'
+                    'Please enter the access password to open the Meridian prototype.</p>',
                     unsafe_allow_html=True)
-        st.markdown('<p style="text-align:center;color:#3C5A4B;margin-top:12px">This prototype is '
-                    'access-protected. Enter the password to continue, and optionally paste your own '
-                    'Google Gemini API key to enable live AI.</p>', unsafe_allow_html=True)
         with st.form("login_form"):
-            entered = st.text_input("Password", type="password", placeholder="Access password")
-            key = st.text_input("Gemini API key (optional)", type="password",
-                                placeholder="Paste your free Gemini API key (optional)")
+            entered = st.text_input("Password", type="password", placeholder="Access password",
+                                    label_visibility="collapsed")
             ok = st.form_submit_button("Enter", type="primary", width="stretch")
         if ok:
             if entered == pw:
                 st.session_state["auth_ok"] = True
-                if key and key.strip():
-                    st.session_state["user_gemini_key"] = key.strip()
                 st.rerun()
             else:
                 st.error("Incorrect password.")
-        st.caption("Without a key, the app runs in offline mock mode.")
     return False
 
 
@@ -406,21 +436,13 @@ def sidebar_controls(show_unread_for: str | None = None) -> None:
         st.markdown(
             f'<div style="font-size:.8rem;color:{PALETTE["muted"]};margin-bottom:4px;">'
             f'<span style="display:inline-block;width:9px;height:9px;border-radius:50%;'
-            f'background:{dot};margin-right:6px;"></span>Clio AI: {_esc(mode_label())}</div>',
+            f'background:{dot};margin-right:6px;"></span>Meridian AI: {_esc(mode_label())}</div>',
             unsafe_allow_html=True,
         )
         if show_unread_for:
             n = state.unread_count(show_unread_for)
             if n:
                 st.markdown(chip(f"{n} new message(s)", "gold"), unsafe_allow_html=True)
-        with st.expander("Use your own Gemini key"):
-            st.caption("Optional. Paste a free Google AI Studio key to use live Clio. It is kept "
-                       "only in this browser session and is never saved to the repository.")
-            val = st.text_input("Gemini API key", type="password", key="byo_key_input",
-                                label_visibility="collapsed", placeholder="Free AI Studio key")
-            if st.button("Use this key", key="byo_apply", width="stretch"):
-                st.session_state["user_gemini_key"] = (val or "").strip()
-                st.rerun()
         st.markdown("---")
         if st.button("↻ Reset demo", width="stretch", key="sb_reset"):
             state.reset_state()
@@ -429,8 +451,10 @@ def sidebar_controls(show_unread_for: str | None = None) -> None:
 
 
 def header_bar(title: str, subtitle: str = "", right_html: str = "", logo: str = "meridian") -> None:
+    # The header background is brand green: the white Meridian logo sits on it
+    # directly (no white plate), while the green Bank logo needs a white plate.
     if logo == "meridian":
-        lg = meridian_logo(h=24, plate=True)
+        lg = meridian_logo(h=30, plate=False)
     elif logo == "bank":
         lg = bank_logo(h=40, plate=True)
     else:
@@ -442,6 +466,15 @@ def header_bar(title: str, subtitle: str = "", right_html: str = "", logo: str =
         f'<div><div class="tb-title">{_esc(title)}</div>{sub}</div>{right}</div>',
         unsafe_allow_html=True,
     )
+
+
+def back_to_overview() -> None:
+    """Prominent top-left button back to the Prototype Instructions hub."""
+    if st.button("⟵  OVERVIEW", key="back_overview", help="Back to the Prototype Instructions"):
+        try:
+            st.switch_page("views/instructions.py")
+        except Exception:
+            pass
 
 
 def pediment(text: str) -> None:
@@ -456,7 +489,8 @@ def footer() -> None:
     yr = datetime.now().year
     st.markdown(
         f'<div class="tb-footer" style="color:#fff">'
-        f'<div style="color:#fff"><span class="wm">MERIDIAN</span> &nbsp;by The Bank, Zurich {yr}</div>'
+        f'<div style="color:#fff;display:flex;align-items:center;gap:9px">{meridian_logo(h=17)}'
+        f'<span style="color:#fff">by The Bank, Zurich {yr}</span></div>'
         f'<div style="color:#fff">{_esc(DISCLAIMER_SHORT)}</div></div>',
         unsafe_allow_html=True,
     )
@@ -464,7 +498,7 @@ def footer() -> None:
 
 def disclaimer_note() -> None:
     st.caption(
-        "Prototype with fictional, synthetic data. Clio (AI) output is illustrative and **not "
+        "Prototype with fictional, synthetic data. Meridian's AI output is illustrative and **not "
         "investment advice**. In production the AI runs on the Swiss-hosted Unique platform; here "
         "it is simulated with Google Gemini."
     )
@@ -689,7 +723,7 @@ def projection_chart(start_value: float, annual_return_pct: float, monthly_contr
 
 
 # ---------------------------------------------------------------------------
-# Chat (Clio)
+# Chat (Meridian AI)
 # ---------------------------------------------------------------------------
 def chat_bubble(who: str, text: str, kind: str = "ai") -> None:
     cls = {"ai": "tb-chat-ai", "user": "tb-chat-user", "human": "tb-chat-human"}.get(kind, "tb-chat-ai")
@@ -702,8 +736,8 @@ def chat_bubble(who: str, text: str, kind: str = "ai") -> None:
 
 def ai_chat_panel(person_key: str, portfolio: dict, member: dict, state_key: str,
                   suggestions: list[tuple[str, str]] | None = None,
-                  title: str = "Clio", scope: str = "Your personal AI-Assistant",
-                  placeholder: str = "Ask Clio about your portfolio…") -> None:
+                  title: str = "Meridian AI", scope: str = "Your personal AI assistant",
+                  placeholder: str = "Ask Meridian about your portfolio…") -> None:
     from app import gemini
 
     hist_key = f"{state_key}_history"
@@ -714,11 +748,12 @@ def ai_chat_panel(person_key: str, portfolio: dict, member: dict, state_key: str
         st.markdown(f'<div class="tb-ai-head"><span class="t">✦ {_esc(title)}</span>'
                     f'<span class="s">{_esc(scope)}</span></div>', unsafe_allow_html=True)
         if not history:
-            chat_bubble("Clio", f"Grüezi {gemini.PERSONA[person_key]['salutation']}, I'm Clio. Ask me "
-                        f"anything about your own portfolio: returns, holdings, fees, trades or the "
-                        f"digital-asset sleeve.", "ai")
+            chat_bubble("Meridian AI", f"Grüezi {gemini.PERSONA[person_key]['salutation']}, I'm the "
+                        f"Meridian assistant. Ask me anything about your own portfolio: returns, "
+                        f"holdings, fees, trades or the digital-asset sleeve.", "ai")
         for role, text in history:
-            chat_bubble("Clio" if role == "model" else "You", text, "ai" if role == "model" else "user")
+            chat_bubble("Meridian AI" if role == "model" else "You", text,
+                        "ai" if role == "model" else "user")
 
         pending: str | None = None
         if suggestions:
@@ -733,7 +768,7 @@ def ai_chat_panel(person_key: str, portfolio: dict, member: dict, state_key: str
         if sent and msg and msg.strip():
             pending = msg.strip()
         if pending:
-            with st.spinner("Clio is reading your portfolio…"):
+            with st.spinner("Meridian is reading your portfolio…"):
                 res = gemini.portfolio_chat(person_key, portfolio, member, history, pending)
             history.append(("user", pending))
             history.append(("model", res["text"]))
@@ -749,7 +784,7 @@ def ai_chat_panel(person_key: str, portfolio: dict, member: dict, state_key: str
 
 
 def advisor_chat_panel(state_key: str, suggestions: list[tuple[str, str]] | None = None,
-                       title: str = "Chat with Clio",
+                       title: str = "Chat with Meridian (AI)",
                        scope: str = "Whole Müller-family database") -> None:
     from app import gemini, state
 
@@ -761,11 +796,11 @@ def advisor_chat_panel(state_key: str, suggestions: list[tuple[str, str]] | None
         st.markdown(f'<div class="tb-ai-head"><span class="t">✦ {_esc(title)}</span>'
                     f'<span class="s">{_esc(scope)}</span></div>', unsafe_allow_html=True)
         if not history:
-            chat_bubble("Clio", "I have the full Müller-family database, covering all members (Hans, "
-                        "Margrit, Lukas, and prospect Sophie), portfolios, CRM, the engagement score "
-                        "and next-best-actions. Ask me anything to prepare.", "ai")
+            chat_bubble("Meridian AI", "I have the full Müller-family database, covering all members "
+                        "(Hans, Margrit and Lukas), portfolios, CRM, the engagement score and "
+                        "next-best-actions. Ask me anything to prepare.", "ai")
         for role, text in history:
-            chat_bubble("Clio" if role == "model" else "Mr. Reto Wyss", text,
+            chat_bubble("Meridian AI" if role == "model" else "Mr. Reto Wyss", text,
                         "ai" if role == "model" else "user")
 
         pending: str | None = None
@@ -782,7 +817,7 @@ def advisor_chat_panel(state_key: str, suggestions: list[tuple[str, str]] | None
         if sent and msg and msg.strip():
             pending = msg.strip()
         if pending:
-            with st.spinner("Clio is consulting the family database…"):
+            with st.spinner("Meridian is consulting the family database…"):
                 res = gemini.advisor_chat(state.get_family(), history, pending)
             history.append(("user", pending))
             history.append(("model", res["text"]))
@@ -837,7 +872,7 @@ def secure_messaging_widget(role: str) -> None:
         st.caption("No messages yet.")
     for m in convo:
         who = _ROLE_NAME.get(m["from"], m["from"])
-        chat_bubble(f"{who} · {m['ts'][:16].replace('T', ' ')}", m["text"], "human")
+        chat_bubble(f"{who}, {m['ts'][:16].replace('T', ' ')}", m["text"], "human")
     with st.form(key=f"msg_{role}", clear_on_submit=True):
         ic, sc = st.columns([0.82, 0.18])
         txt = ic.text_input("Message", key=f"msg_inp_{role}", label_visibility="collapsed",
@@ -891,7 +926,7 @@ def past_meetings(role: str | None = None, limit: int | None = None) -> None:
     for m in hist:
         att = ", ".join(_ROLE_NAME.get(a, a) for a in m.get("attendees", []))
         with st.container(border=True):
-            st.markdown(f"**{m['date']} — {m['topic']}**")
+            st.markdown(f"**{m['date']}: {m['topic']}**")
             st.markdown(
                 chip(m.get("mode", ""), "gold") + chip(f"RM: {m['rm']}")
                 + chip(f"Present: {att}"),

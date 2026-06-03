@@ -131,7 +131,7 @@ PERSONA = {
 
 def _chat_system_instruction(person_key: str, context: str) -> str:
     persona = PERSONA[person_key]
-    return f"""You are Clio, The Bank's AI assistant on the Meridian platform, speaking with {persona['salutation']}.
+    return f"""You are the AI assistant built into The Bank's Meridian platform, speaking with {persona['salutation']}.
 
 STRICT SCOPE — answer ONLY using the CONTEXT below, which is {persona['salutation']}'s own portfolio with The Bank. You operate entirely inside "The Bank universe".
 
@@ -164,10 +164,10 @@ _OFF_TOPIC_RE = re.compile("|".join(_OFF_TOPIC_PATTERNS), re.IGNORECASE)
 
 def _decline_text(person_key: str) -> str:
     if person_key == "principal":
-        return ("I'm sorry, Mr. Mueller — I can only answer questions about your own "
+        return ("I'm sorry, Mr. Mueller. I can only answer questions about your own "
                 "portfolio with The Bank. For market views, tax or legal matters, your "
                 "relationship manager Mr. Reto Wyss would be glad to assist.")
-    return ("I can only help with your own portfolio here at The Bank — not general market "
+    return ("I can only help with your own portfolio here at The Bank, not general market "
             "tips, forecasts or tax advice. For those, Mr. Reto Wyss (your family's relationship "
             "manager) is the right contact. I'm happy to explain anything about your own "
             "holdings, returns or goals, though!")
@@ -198,7 +198,12 @@ def _looks_off_topic_advisor(msg: str) -> bool:
 # ---------------------------------------------------------------------------
 def portfolio_chat(person_key: str, portfolio: dict, member: dict,
                    history: list[tuple[str, str]], user_msg: str) -> dict:
-    """Answer a portfolio question for one person. Returns {text, mode, note}."""
+    """Answer a portfolio question for one person. Returns {text, mode, note}.
+
+    The client assistant answers about the person's OWN portfolio (value, returns,
+    holdings, fees, trades, digital assets) — it does not surface strategy-adherence
+    status or recommendations (those live with the advisor).
+    """
     # Deterministic guardrail first — guarantees refusal & saves quota.
     if _looks_off_topic(user_msg):
         return {"text": _decline_text(person_key), "mode": "guardrail", "note": "Off-topic — declined by guardrail."}
@@ -269,7 +274,7 @@ def _copilot(system_instruction: str, user_prompt: str, mock_fn) -> dict:
 
 
 _COPILOT_SYS = (
-    "You are Clio, the Advisor Co-Pilot for Mr. Reto Wyss, a relationship manager at The Bank "
+    "You are the Meridian AI assistant supporting Mr. Reto Wyss, a relationship manager at The Bank "
     "(a Swiss private bank). You support — never replace — the human advisor: every "
     "output is a DRAFT for his review, never auto-sent. Be precise, concise and "
     "practical. The clients are German-domiciled and served cross-border from "
@@ -283,11 +288,11 @@ _COPILOT_SYS = (
 # Advisor Co-Pilot — ONE assistant over the WHOLE family database (RM only)
 # ---------------------------------------------------------------------------
 _ADVISOR_SYS = (
-    "You are Clio, the Advisor Co-Pilot for Mr. Reto Wyss, a relationship manager at The Bank (a Swiss "
+    "You are the Meridian AI assistant for Mr. Reto Wyss, a relationship manager at The Bank (a Swiss "
     "private bank). You have access to The Bank's COMPLETE internal database for the MUELLER "
-    "FAMILY ONLY — every member (Hans the principal, Margrit his spouse, Lukas the heir, and "
-    "Sophie, a not-yet-client prospect), all portfolios, CRM, life events, the Inheritance "
-    "Engagement Score and the open next-best-actions. Answer using ONLY this family's data. You "
+    "FAMILY ONLY — every member (Hans the principal, Margrit his spouse, and Lukas the heir), "
+    "all portfolios, CRM, life events, the per-member Engagement Scores, the family Inheritance "
+    "Score and the open next-best-actions. Answer using ONLY this family's data. You "
     "may discuss any member, cross-member totals, wealth-transfer strategy and concrete next "
     "actions. The family is German-domiciled and served cross-border from Switzerland — respect "
     "Swiss FIDLEG/FINIG and German cross-border rules. Politely decline anything outside this "
@@ -327,7 +332,11 @@ def family_context_block(family: dict, score: dict) -> str:
                        for k in order if family["portfolios"].get(k)
                        for e in family["portfolios"][k]["crm"].get("life_events", []))
     nbas = "; ".join(f"{n['title']} (for {n['target']})" for n in family.get("nbas", [])) or "none open"
+    flags = "; ".join(f"[{a['severity']}] {a['member_name']}: {a['detail'] or a['template_text']}"
+                      for a in family.get("alerts", [])) or "none open"
     msgs = "; ".join(f"{m['from']}->{m['to']}: {m['text'][:80]}" for m in family.get("messages", [])[-4:]) or "none"
+    es = family.get("engagement_scores", {})
+    eng_txt = "; ".join(f"{family['members'][k]['name']}: {v['score']}/100" for k, v in es.items()) or "n/a"
     strategy_txt = " ".join(f"{k.replace('_', ' ').title()}: {v}" for k, v in fixtures.FAMILY_STRATEGY.items())
     names = {k: v.get("name", k) for k, v in family["members"].items()}
     history = "; ".join(
@@ -337,19 +346,21 @@ def family_context_block(family: dict, score: dict) -> str:
     return f"""MUELLER FAMILY — total relationship AUM with The Bank: {_fmt_chf(total)}.
 MEMBERS:
 {members}
-HOUSEHOLD: {household}. (Sophie, 29, is a prospect — not yet a client.)
+HOUSEHOLD: {household}.
 FAMILY STRATEGY (pursued so far): {strategy_txt}
-INHERITANCE ENGAGEMENT SCORE: {score['score']}/100 ({score['band_label']}). Components: {score['components']}.
+ENGAGEMENT SCORES (per member, higher = more engaged): {eng_txt}.
+INHERITANCE SCORE (family, higher = more at-risk AUM): {score['score']}/100 ({score['band_label']}). Components: {score['components']}.
 Drivers: {'; '.join(score['drivers'])}.
 OPEN NEXT-BEST-ACTIONS: {nbas}.
+OPEN CLIENT STRATEGY MONITOR FLAGS (detected by the rule engine, not by you): {flags}.
 PAST MEETINGS (what was discussed; most recent first): {history}.
 LIFE EVENTS: {events}.
 RECENT SECURE MESSAGES: {msgs}."""
 
 
 def _advisor_decline() -> str:
-    return ("I'm Clio, the Müller family's Advisor Co-Pilot — I can help with anything in this family's "
-            "data (any member, totals, the engagement score, next-best-actions), but not market "
+    return ("I'm the Meridian AI assistant for the Müller family — I can help with anything in this "
+            "family's data (any member, totals, the engagement score, next-best-actions), but not market "
             "calls, forecasts, tax/legal advice or general questions.")
 
 
@@ -375,8 +386,16 @@ def _mock_advisor(family: dict, score: dict, msg: str) -> str:
     m = (msg or "").lower()
     total = sum(p["total_value_chf"] for p in family["portfolios"].values())
     if any(k in m for k in ("score", "risk", "engagement", "priority")):
-        return (f"The Müller family's Inheritance Engagement Score is {score['score']}/100 "
+        return (f"The Müller family's Inheritance Score is {score['score']}/100 "
                 f"({score['band_label']}). Key drivers: {'; '.join(score['drivers'][:3])}.")
+    if any(k in m for k in ("strategy", "monitor", "flag", "alert", "breach", "suitability",
+                            "drift", "on track", "policy")):
+        alerts = family.get("alerts", [])
+        if not alerts:
+            return "The Client Strategy Monitor shows no open flags — every portfolio is on strategy."
+        return ("Open Client Strategy Monitor flags (detected by the rule engine):\n"
+                + "\n".join(f"• [{a['severity']}] {a['member_name']}: {a['detail'] or a['template_text']}"
+                            for a in alerts))
     if any(k in m for k in ("next", "action", "do", "recommend", "propose")):
         nbas = family.get("nbas", [])
         if not nbas:
@@ -388,14 +407,94 @@ def _mock_advisor(family: dict, score: dict, msg: str) -> str:
             return (f"Margrit Müller (spouse, 62): portfolio {_fmt_chf(sp['total_value_chf'])}, "
                     f"risk {sp['risk_profile']}, net return {sp['net_return']['annualised_return_irr_pct']:+.1f}% p.a. "
                     f"Conservative profile; no digital-asset sleeve.")
-    if any(k in m for k in ("sophie", "daughter", "tochter")):
-        return "Sophie Müller (29) is the daughter — a prospect, not yet a client. A natural next-gen target alongside Lukas."
     if any(k in m for k in ("total", "family", "wealth", "aum", "overview")):
         return (f"Total Müller relationship AUM is {_fmt_chf(total)} across "
                 f"{len([p for p in family['portfolios']])} members (Hans, Margrit, Lukas). "
                 f"Engagement score {score['score']}/100 ({score['band_label']}).")
-    return (f"Müller family overview: total AUM {_fmt_chf(total)}; engagement score {score['score']}/100 "
-            f"({score['band_label']}). Ask me about any member, the score, or next-best-actions.")
+    return (f"Müller family overview: total AUM {_fmt_chf(total)}; inheritance score {score['score']}/100 "
+            f"({score['band_label']}). Ask me about any member, the scores, or next-best-actions.")
+
+
+# ---------------------------------------------------------------------------
+# Client Strategy Monitor narration (paper §4.3) — turn a deterministic flag into
+# the recipient-specific message. The flag was decided by strategy.py (a rule
+# engine), NEVER by the LLM. The AI only explains the signal and proposes a
+# conversation; it never invents a breach, recommends a trade, states an
+# allocation instruction, gives tax advice, or makes a market forecast.
+# ---------------------------------------------------------------------------
+_MONITOR_GUARDRAIL = (
+    "You are the Meridian AI assistant for The Bank. A deterministic rule engine (the Client Strategy "
+    "Monitor) has ALREADY detected the signal described below — you do NOT decide whether it is a "
+    "breach. Your ONLY job is to explain this specific signal in plain language and propose a "
+    "conversation or a rebalancing/review meeting. You MUST NOT invent or imply any other breach, "
+    "recommend a specific trade or security, state an allocation instruction, give tax or legal "
+    "advice, or make any market forecast. Ground strictly in the fields provided; never invent figures."
+)
+
+
+def _alert_facts(alert: dict, family: dict | None) -> str:
+    metric = alert.get("metric", {})
+    bits = "; ".join(f"{k}={v}" for k, v in metric.items() if not isinstance(v, dict))
+    lines = [
+        f"MEMBER: {alert.get('member_name', alert.get('member'))} ({alert.get('member')}).",
+        f"CATEGORY: {alert.get('category')} · SEVERITY: {alert.get('severity')}.",
+        f"RULE THAT FIRED (policy_ref): {alert.get('policy_ref')}.",
+        f"DETERMINISTIC DETAIL: {alert.get('detail') or alert.get('template_text')}",
+        f"METRICS: {bits}.",
+        f"SUGGESTED ACTION: {alert.get('suggested_action')} (topic: {alert.get('topic')}).",
+    ]
+    if family:
+        sc = family.get("current_score") or {}
+        if sc:
+            lines.append(f"FAMILY ENGAGEMENT SCORE: {sc.get('score')}/100 ({sc.get('band_label')}).")
+    return "\n".join(lines)
+
+
+def _alerts_for_prompt(alerts: list[dict]) -> str:
+    return "\n".join(f"- [{a.get('severity')}] {a.get('category')}: {a.get('detail') or a.get('template_text')}"
+                     for a in alerts)
+
+
+def narrate_alert(alert: dict, audience: str, family: dict | None = None) -> dict:
+    """Recipient-specific narration of one strategy-monitor flag. Returns {text, source}.
+
+    With a key: the AI grounds on the structured fields + context and writes for the
+    audience (advisor context for "rm", calm client language for "client"). Without a
+    key: the deterministic template_text from strategy.py, labelled source="mock".
+    """
+    if not is_live():
+        return {"text": alert.get("template_text", ""), "source": "mock"}
+    if audience == "client":
+        style = ("Write 2-3 calm, reassuring sentences in plain language for the client. This is "
+                 "information, not advice. Avoid jargon; never alarm. End by gently offering a chat "
+                 "with their relationship manager, Mr. Reto Wyss.")
+    else:
+        style = ("Write 2-3 precise, context-rich sentences for the relationship manager Mr. Reto Wyss. "
+                 "Reference the metric and the policy rule, and propose the suggested action as a draft.")
+    prompt = _alert_facts(alert, family) + "\n\n" + style
+    try:
+        text, _mode, _note = _run_generate(_MONITOR_GUARDRAIL, [], prompt)
+        return {"text": text, "source": "live"}
+    except Exception:  # noqa: BLE001
+        return {"text": alert.get("template_text", ""), "source": "mock"}
+
+
+def draft_alert_message(alert: dict, family: dict | None = None) -> dict:
+    """Draft the outgoing meeting/message text for an alert. Returns {text, source}.
+
+    Live when a key is present; otherwise the deterministic alert['message'] template.
+    """
+    if not is_live():
+        return {"text": alert.get("message", ""), "source": "mock"}
+    prompt = (_alert_facts(alert, family) + "\n\nDraft a short, warm secure message from Mr. Reto Wyss "
+              "to the client proposing the suggested action (a " + str(alert.get("topic")) + "). A German "
+              "salutation is fine; about 70-90 words; end with a clear next step. It is a DRAFT for his "
+              "review and must not contain a specific trade, allocation instruction, tax advice or forecast.")
+    try:
+        text, _mode, _note = _run_generate(_COPILOT_SYS, [], prompt)
+        return {"text": text, "source": "live"}
+    except Exception:  # noqa: BLE001
+        return {"text": alert.get("message", ""), "source": "mock"}
 
 
 def briefing(portfolio: dict, member: dict, score_obj: dict) -> dict:

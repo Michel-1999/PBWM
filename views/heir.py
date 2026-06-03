@@ -22,6 +22,12 @@ eng = fam["engagement"]
 portfolio = fam["portfolios"]["heir"]
 member = fam["members"]["heir"]
 
+_tl, _tm, _tr = st.columns([0.3, 0.4, 0.3])
+with _tl:
+    ui.back_to_overview()
+with _tr:
+    dashboard.config_popover("heir")
+
 portrait = (
     ui.avatar_html("sohn.png", "LM", 112, ring="#fff")
     + '<div style="text-align:right"><div style="color:#fff;font-weight:400;font-size:1.05rem">Lukas Müller</div>'
@@ -29,15 +35,17 @@ portrait = (
 )
 ui.header_bar("My Wealth Intelligence", "powered by Meridian", right_html=portrait)
 
-# --- Identical KPI boxes ---------------------------------------------------
+# --- 1) Identical KPI boxes ------------------------------------------------
 dashboard.kpi_row(portfolio)
 
-# --- Clio — your personal AI-Assistant (collapsible) -----------------------
+# --- 2) My strategy (agreed with the advisor) ------------------------------
+dashboard.strategy_summary_card("heir", portfolio, member)
+
+# --- 3) Chat with Meridian AI --------------------------------------------
 st.markdown(" ")
-with st.expander("Clio, your personal AI-Assistant", expanded=True):
+with st.expander("Chat with Meridian AI", expanded=True):
     ui.ai_chat_panel(
         "heir", portfolio, member, state_key="heir_chat",
-        title="Clio", scope="Your personal AI-Assistant",
         suggestions=[
             ("How am I doing?", "What has been my net return, including all trades, since I started?"),
             ("What's an ETF?", "What ETFs do I hold and what does that mean?"),
@@ -46,7 +54,7 @@ with st.expander("Clio, your personal AI-Assistant", expanded=True):
         placeholder="e.g. How much have I made since I started? What do I own?",
     )
 
-# --- Personalised offers ----------------------------------------------------
+# --- 4) Personalised offers ------------------------------------------------
 ui.pediment("For you")
 o1, o2 = st.columns(2, gap="large")
 with o1:
@@ -59,8 +67,7 @@ with o1:
         state.add_message("heir", "rm",
                           "Hi Reto, ich würde gerne einen einfachen monatlichen Sparplan "
                           "einrichten. Wann hätten Sie Zeit für ein kurzes Gespräch?")
-        st.success("Nice! Mr. Reto Wyss will reach out to set it up.")
-        st.rerun()
+        st.toast("Nice! Reto Wyss will reach out to set it up.", icon="✅")
 with o2:
     ui.offer_card(
         "heir_academy", tag="Learn", icon="◆", title="First-time investor academy",
@@ -69,10 +76,10 @@ with o2:
 
 if st.button("📚  Open the Finance Learning hub", key="finlearn_heir"):
     st.toast("Finance Learning is coming soon.")
-st.caption("Short explainers on investing, risk and compounding (demo placeholder).")
 
-# --- Configurable dashboard (life-goal tracker holds the engagement levers) -
+# --- 5) Configurable dashboard (life-goal tracker holds the engagement levers) -
 dashboard.render("heir", portfolio, member)
+# --- 6) Advisor touchpoints ------------------------------------------------
 dashboard.advisor_touchpoints("heir")
 
 ui.disclaimer_note()

@@ -39,26 +39,26 @@ def kpi_row(portfolio: dict) -> None:
 # ---------------------------------------------------------------------------
 # Configurable dashboard
 # ---------------------------------------------------------------------------
+def config_popover(persona_key: str) -> None:
+    """Compact dashboard settings, shown as a small top-right control."""
+    flags = st.session_state.setdefault(f"widgets_{persona_key}", {w: True for w in WIDGETS})
+    with st.popover("⚙  Configure dashboard"):
+        st.markdown("**Modules to show**")
+        for w in WIDGETS:
+            flags[w] = st.checkbox(w, value=flags.get(w, True), key=f"cfg_{persona_key}_{w}")
+        st.markdown("**Appearance**")
+        ui.accent_picker(persona_key)
+        st.caption("Your accent colour re-themes your whole Meridian interface.")
+        default_ct = "Line" if persona_key == "heir" else "Bar"
+        st.selectbox("Performance chart style", ["Bar", "Line"],
+                     index=(1 if default_ct == "Line" else 0), key=f"cfg_ct_{persona_key}")
+        st.checkbox("Show benchmark", value=True, key=f"cfg_bm_{persona_key}")
+        st.checkbox("Compact view", value=False, key=f"cfg_compact_{persona_key}")
+        st.caption("More modules coming soon: " + ", ".join(COMING_SOON))
+
+
 def render(persona_key: str, portfolio: dict, member: dict) -> None:
-    flags = st.session_state.setdefault(f"widgets_{persona_key}",
-                                        {w: True for w in WIDGETS})
-    with st.expander("⚙ Configure your dashboard — your design, your way", expanded=False):
-        st.markdown("**Modules** — show or hide what you care about")
-        cols = st.columns(len(WIDGETS))
-        for col, w in zip(cols, WIDGETS):
-            flags[w] = col.checkbox(w, value=flags.get(w, True), key=f"cfg_{persona_key}_{w}")
-        oc1, oc2, oc3 = st.columns(3)
-        with oc1:
-            ui.accent_picker(persona_key)
-            st.caption("Your accent colour re-themes your whole Meridian interface.")
-        with oc2:
-            default_ct = "Line" if persona_key == "heir" else "Bar"
-            st.selectbox("Performance chart style", ["Bar", "Line"],
-                         index=(1 if default_ct == "Line" else 0), key=f"cfg_ct_{persona_key}")
-            show_bm = st.checkbox("Show benchmark", value=True, key=f"cfg_bm_{persona_key}")
-        with oc3:
-            compact = st.checkbox("Compact view", value=False, key=f"cfg_compact_{persona_key}")
-        st.caption("More modules coming soon — " + ", ".join(COMING_SOON))
+    flags = st.session_state.setdefault(f"widgets_{persona_key}", {w: True for w in WIDGETS})
     accent = ui.accent_for(persona_key)
     show_bm = st.session_state.get(f"cfg_bm_{persona_key}", True)
     chart_type = "line" if st.session_state.get(f"cfg_ct_{persona_key}",
@@ -96,22 +96,24 @@ def render(persona_key: str, portfolio: dict, member: dict) -> None:
     if flags.get("Tax overview"):
         ui.pediment("Tax overview · cross-border DE / CH")
         st.markdown(
-            "- **Booking centre** Switzerland — assets held & reported from Zurich.\n"
-            "- **Domicile** Germany — income & gains taxable in your country of residence.\n"
-            "- **Swiss withholding** 35% on Swiss-source income, reclaimable under the CH–DE treaty.\n"
+            "- **Booking centre** Switzerland: assets held & reported from Zurich.\n"
+            "- **Domicile** Germany: income & gains taxable in your country of residence.\n"
+            "- **Swiss withholding** 35% on Swiss-source income, reclaimable under the CH/DE treaty.\n"
             "- **Reporting** annual DE-compatible tax statement provided by The Bank."
         )
         st.caption("General information only. Not tax advice.")
 
 
+# Kept in sync with the fixtures policy.goals (so the Strategy Monitor's goal-gap
+# check and the client-facing tracker show the same funding levels).
 STATIC_GOALS = {
     "principal": [
-        {"name": "Legacy fund for grandchildren", "target": 500_000, "saved": 320_000},
+        {"name": "Legacy fund for grandchildren", "target": 500_000, "saved": 380_000},
         {"name": "Ticino property upkeep reserve", "target": 200_000, "saved": 165_000},
     ],
     "spouse": [
-        {"name": "Family foundation endowment", "target": 400_000, "saved": 250_000},
-        {"name": "Travel & arts fund", "target": 120_000, "saved": 78_000},
+        {"name": "Family foundation endowment", "target": 400_000, "saved": 300_000},
+        {"name": "Travel & arts fund", "target": 120_000, "saved": 96_000},
     ],
 }
 
@@ -119,7 +121,7 @@ STATIC_GOALS = {
 def _life_goals(persona_key: str, accent: str) -> None:
     if persona_key in STATIC_GOALS:
         for g in STATIC_GOALS[persona_key]:
-            st.markdown(f"**{g['name']}** — {ui.money(g['saved'])} of {ui.money(g['target'])}")
+            st.markdown(f"**{g['name']}**: {ui.money(g['saved'])} of {ui.money(g['target'])}")
             ui.hbar("Progress", g["saved"] / g["target"] * 100, color=accent, suffix="%")
         return
 
@@ -129,7 +131,7 @@ def _life_goals(persona_key: str, accent: str) -> None:
         st.info("No goals yet. Create your first one below.")
     for g in eng["heir_goals"]:
         prog = (g["saved_chf"] / g["target_chf"] * 100) if g["target_chf"] else 0
-        st.markdown(f"**{g['name']}** — {ui.money(g['saved_chf'])} of {ui.money(g['target_chf'])} · {g['horizon_years']}y")
+        st.markdown(f"**{g['name']}**: {ui.money(g['saved_chf'])} of {ui.money(g['target_chf'])} ({g['horizon_years']}y)")
         ui.hbar("Progress", prog, color=accent, suffix="%")
 
     a, b = st.columns(2, gap="large")
@@ -175,10 +177,61 @@ def _scenario(persona_key: str, portfolio: dict, accent: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# My strategy (paper §4.3, client side) — a plain summary of the strategy the
+# client agreed with their advisor. Clients see WHAT was agreed, not a fulfilment
+# score or AI recommendations (those live in the advisor's Client Strategy Monitor).
+# ---------------------------------------------------------------------------
+def strategy_summary_card(persona_key: str, portfolio: dict, member: dict) -> None:
+    policy = portfolio.get("policy", {})
+    target = policy.get("target_allocation", {})
+    limits = policy.get("limits", {})
+    risk = policy.get("risk_profile") or portfolio.get("risk_profile", "")
+
+    top = sorted(target.items(), key=lambda kv: kv[1], reverse=True)[:4]
+    mix = ", ".join(f"{c} {w:.0f}%" for c, w in top) or "balanced across asset classes"
+
+    guards = []
+    if limits.get("concentration_limit_pct"):
+        guards.append(f"no single holding above {limits['concentration_limit_pct']}%")
+    if limits.get("cash_floor_pct") is not None and limits.get("cash_ceiling_pct") is not None:
+        guards.append(f"cash kept around {limits['cash_floor_pct']}–{limits['cash_ceiling_pct']}%")
+    if limits.get("da_vol_budget_pct"):
+        guards.append(f"digital assets up to {limits['da_vol_budget_pct']}%")
+    guards_txt = "; ".join(guards) if guards else "diversification and risk discipline"
+
+    if member["role"] == "heir":
+        goals = [g["name"] for g in state.get_family()["engagement"].get("heir_goals", [])]
+        goals_txt = ", ".join(goals) if goals else "your first goal (set one in the goal tracker below)"
+    else:
+        goals = [g["name"] for g in policy.get("goals", [])]
+        goals_txt = ", ".join(goals) if goals else "none on file"
+
+    ui.pediment("My strategy")
+    st.markdown(
+        '<div class="tb-card accent">'
+        '<div class="tb-metric-label">Agreed with Reto Wyss at the annual review</div>'
+        f'<div style="font-weight:400;color:var(--tb-green);font-size:1.08rem;margin:3px 0 9px">'
+        f'{ui._esc(risk)} mandate</div>'
+        '<div style="font-size:.92rem;line-height:1.75">'
+        f'<b>Target mix:</b> {ui._esc(mix)}<br>'
+        f'<b>Guardrails:</b> {ui._esc(guards_txt)}<br>'
+        f'<b>Goals we track together:</b> {ui._esc(goals_txt)}</div></div>',
+        unsafe_allow_html=True,
+    )
+    if st.button("I'd like to adjust something: schedule a meeting with Reto Wyss",
+                 key=f"strategy_meet_{persona_key}", type="primary"):
+        state.add_message(
+            persona_key, "rm",
+            "Hallo Reto, ich würde gerne meine Strategie anschauen und ggf. anpassen. "
+            "Können wir einen Termin vereinbaren?")
+        st.toast("Sent to Reto Wyss. He will reach out to schedule a meeting.", icon="✅")
+
+
+# ---------------------------------------------------------------------------
 # Advisor touchpoints (shared)
 # ---------------------------------------------------------------------------
 def advisor_touchpoints(persona_key: str) -> None:
-    ui.pediment("Your advisor — Mr. Reto Wyss")
+    ui.pediment("Your advisor, Mr. Reto Wyss")
     t1, t2, t3 = st.tabs(["Secure messaging", "Meetings", "Documents"])
     with t1:
         st.markdown(ui.chip("Secure message to your advisor", "gold") + ui.chip("Not the AI chat"),

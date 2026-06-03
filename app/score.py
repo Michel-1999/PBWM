@@ -178,6 +178,62 @@ def _drivers(components: dict, eng: dict, age: int, aum: float) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
+# Engagement Score — per family member, from observable platform behaviour.
+# Rule-based and transparent (NOT the LLM). Higher = more actively engaged.
+# The Inheritance Score above builds on these (heir disengagement) and adds the
+# structural KPIs (age / wealth at stake).
+# ---------------------------------------------------------------------------
+ENG_TARGETS = {"logins_30d": 8, "deposits_12m": 3, "goals": 2, "meetings_12m": 3}
+ENG_WEIGHTS_M = {"logins": 0.22, "deposits": 0.22, "goals": 0.20, "meetings": 0.20, "depth": 0.16}
+
+
+def _member_metrics(family: dict, key: str) -> dict:
+    """Observable behaviour per member; the heir's are live, the rest are seeded."""
+    eng = family["engagement"]
+    if key == "heir":
+        return {
+            "logins_30d": eng.get("heir_logins_30d", 0),
+            "deposits_12m": min(eng.get("heir_deposits_90d", 0), 4),
+            "goals": len(eng.get("heir_goals", [])),
+            "meetings_12m": 1 if eng.get("heir_has_rm_relationship") else 0,
+            "depth": 0.5 * (1 if eng.get("heir_has_savings_plan") else 0)
+            + 0.5 * (1 if eng.get("heir_has_own_mandate") else 0),
+        }
+    m = eng.get("members", {}).get(key, {})
+    return {"logins_30d": m.get("logins_30d", 0), "deposits_12m": m.get("deposits_12m", 0),
+            "goals": m.get("goals", 0), "meetings_12m": m.get("meetings_12m", 0),
+            "depth": m.get("depth", 0.0)}
+
+
+def member_engagement(family: dict, key: str) -> dict:
+    """Return {score 0-100, components} for one member (higher = more engaged)."""
+    mt = _member_metrics(family, key)
+    login_e = _clamp(mt["logins_30d"] / ENG_TARGETS["logins_30d"])
+    deposit_e = _clamp(mt["deposits_12m"] / ENG_TARGETS["deposits_12m"])
+    goals_e = _clamp(mt["goals"] / ENG_TARGETS["goals"])
+    meet_e = _clamp(mt["meetings_12m"] / ENG_TARGETS["meetings_12m"])
+    depth_e = _clamp(mt["depth"])
+    blend = (ENG_WEIGHTS_M["logins"] * login_e + ENG_WEIGHTS_M["deposits"] * deposit_e
+             + ENG_WEIGHTS_M["goals"] * goals_e + ENG_WEIGHTS_M["meetings"] * meet_e
+             + ENG_WEIGHTS_M["depth"] * depth_e)
+    return {
+        "score": int(round(blend * 100)),
+        "components": {
+            "Logins & activity": round(login_e * 100, 1),
+            "Deposits": round(deposit_e * 100, 1),
+            "Goals & scenarios": round(goals_e * 100, 1),
+            "Advisor meetings": round(meet_e * 100, 1),
+            "Mandate depth": round(depth_e * 100, 1),
+        },
+    }
+
+
+def compute_member_engagement(family: dict) -> dict:
+    """Per-member Engagement Scores for the whole family."""
+    return {k: member_engagement(family, k) for k in family["portfolios"]}
+
+
+# ---------------------------------------------------------------------------
 # Next-Best-Actions — derived from the same rules; these are what the RM clicks.
 # ---------------------------------------------------------------------------
 def generate_nbas(family: dict) -> list[dict]:
